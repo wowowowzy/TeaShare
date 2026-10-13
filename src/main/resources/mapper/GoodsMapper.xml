@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.tea.mapper.GoodsMapper">
+    <insert id="insert">
+        INSERT INTO goods (
+            goods_name,
+            goods_intro,
+            goods_price,
+            category_id,
+            stock_num,
+            goods_image,
+            create_time,
+            update_time
+        ) VALUES (
+                     #{goodsName},
+                     #{goodsIntro},
+                     #{goodsPrice},
+                     #{categoryId},
+                     #{stockNum},
+                     #{goodsImage},
+                     NOW(),
+                     NOW()
+                 )
+    </insert>
+    <insert id="addReview">
+        INSERT INTO goods_review (
+            goods_id,
+            user_id,
+            content,
+            level,
+            like_count,
+            create_time,
+            update_time
+            <if test="image!=null">,image</if>
+        ) VALUES (
+                     #{goodsId},
+                     #{userId},
+                     #{content},
+                     #{level},
+                     #{likeCount},
+                     NOW(),
+                     NOW()
+        <if test="image!=null">,#{image}</if>
+                 )
+    </insert>
+    <update id="updateById">
+        UPDATE goods
+        SET
+            goods_name = #{goodsName},
+            goods_intro = #{goodsIntro},
+            goods_price = #{goodsPrice},
+            category_id = #{categoryId},
+            stock_num = #{stockNum},
+            goods_image = #{goodsImage},
+            update_time = NOW()
+        WHERE goods_id = #{goodsId}
+    </update>
+    <update id="updateStocks">
+        UPDATE goods
+        SET stock_num = CASE goods_id
+        <foreach collection="list" item="item">
+            WHEN #{item.goodsId} THEN stock_num - #{item.quantity}
+        </foreach>
+                END,
+                update_time = NOW()
+                WHERE goods_id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.goodsId}
+        </foreach>
+        AND stock_num >=
+        <foreach collection="list" item="item" open="CASE goods_id " separator=" " close="END">
+            WHEN #{item.goodsId} THEN #{item.quantity}
+        </foreach>
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM goods
+        WHERE goods_id = #{goodsId}
+    </delete>
+    <select id="findAllGoods" resultType="com.example.tea.entity.dto.Goods.GoodsDTO">
+        select g.goods_id,g.goods_name,g.goods_price,g.goods_image,g.category_id,IFNULL(SUM(o.quantity), 0) AS quantity
+        from goods g
+        left join `order` o on g.goods_id = o.goods_id
+        <where>
+            <if test="categoryId!=null">and category_id=#{categoryId}</if>
+            <if test="goodsName!=null and goodsName!=''">
+                and goods_name like concat('%',#{goodsName},'%')
+            </if>
+        </where>
+        group by g.goods_id
+    </select>
+    <select id="getTotalPrice" resultType="com.example.tea.entity.dto.Order.OrderAndGoodsDTO">
+        select goods_id,goods_price from goods where goods_id in
+        <foreach collection="payDTOList" open="(" close=")" separator="," item="dto">
+            #{dto.goodsId}
+        </foreach>
+    </select>
+    <select id="findAllGoodsAdmin" resultType="com.example.tea.entity.pojo.Goods.Goods">
+        select * from goods
+        <where>
+            <if test="categoryId!=null">and category_id=#{categoryId}</if>
+            <if test="goodsName!=null and goodsName!=''">
+                and goods_name like concat('%',#{goodsName},'%')
+            </if>
+        </where>
+    </select>
+    <select id="findGoodDetail" resultType="com.example.tea.entity.vo.Goods.GoodsWithQuantityVO">
+        select g.goods_id,g.goods_name,g.goods_intro,g.goods_price,g.category_id,g.stock_num,g.goods_image,IFNULL(SUM(o.quantity), 0) AS quantity
+        from goods g left join `order` o on g.goods_id = o.goods_id
+        where g.goods_id = #{goodsId}
+        group by g.goods_id
+    </select>
+    <select id="getAllGoodsDetail" resultType="com.example.tea.entity.vo.Goods.GoodsWithQuantityVO">
+        select g.goods_id,g.goods_name,g.goods_intro,g.goods_price,g.category_id,g.stock_num,g.goods_image,IFNULL(SUM(o.quantity), 0) AS quantity
+        from goods g left join `order` o on g.goods_id = o.goods_id
+        group by g.goods_id
+    </select>
+    <select id="getReviewByGoodsId" resultType="com.example.tea.entity.vo.Goods.GoodsReviewVO">
+        select
+        gr.id as reviewId,gr.user_id,su.username,gr.content,gr.level,gr.like_count, gr.image,su.avatar as userImage,IFNULL(lr.is_cancel, -1) as isCancel
+        from goods_review gr
+        left join like_record lr on gr.id = lr.target_id and lr.target_type = 3 and lr.user_id = #{userId}
+        left join sys_user su on gr.user_id = su.id
+        where gr.goods_id = #{goodsId}
+        order by gr.like_count desc
+    </select>
+    <select id="getGoodsByList" resultType="com.example.tea.entity.dto.Goods.GoodsStockDTO">
+        select goods_id, stock_num
+        from goods
+        where goods_id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </select>
+
+
+</mapper>
+

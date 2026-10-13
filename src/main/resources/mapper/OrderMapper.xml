@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.tea.mapper.OrderMapper">
+    <insert id="pay">
+        insert into `order`(user_id, goods_id, order_id, quantity, create_time, update_time,status)
+        values
+        <foreach collection="list" item="order" separator=",">
+            (
+            #{order.userId},
+            #{order.goodsId},
+            #{order.orderId},
+            #{order.quantity},
+            #{order.createTime},
+            #{order.updateTime},
+            #{order.status}
+            )
+        </foreach>
+    </insert>
+    <insert id="insertDetail">
+        insert into order_detail (order_id,user_id,total_price,create_time,update_time
+        <if test="couponId!=null">, coupon_id</if>
+                                  )
+        values (#{orderId},#{userId},#{totalPrice},
+                #{createTime},#{updateTime}
+        <if test="couponId!=null">, #{couponId}</if>
+                )
+
+    </insert>
+    <update id="updateStocks">
+
+    </update>
+    <select id="getOrders" resultType="com.example.tea.entity.dto.Order.OrderDTO">
+        SELECT
+            o.order_id,
+            o.create_time,
+            o.quantity,
+            g.goods_name,
+            g.goods_image,
+            g.goods_price,
+            g.goods_intro,
+            od.coupon_id,
+            od.total_price,
+            o.status
+        FROM `order` o
+                 LEFT JOIN goods g ON o.goods_id = g.goods_id
+                 LEFT JOIN order_detail od ON CAST(o.order_id AS CHAR) = od.order_id
+        WHERE o.user_id = #{userId}
+        ORDER BY o.create_time DESC
+    </select>
+    <select id="getOrderById" resultType="com.example.tea.entity.dto.Order.OrderDTO">
+        SELECT
+            o.order_id,
+            o.create_time,
+            o.quantity,
+            g.goods_name,
+            g.goods_image,
+            g.goods_price,
+            g.goods_intro,
+            od.coupon_id,
+            od.total_price,
+            o.status
+
+        FROM `order` o
+                 LEFT JOIN goods g ON o.goods_id = g.goods_id
+                 LEFT JOIN order_detail od ON CAST(o.order_id AS CHAR) = od.order_id
+        WHERE o.user_id = #{userId} and o.order_id =#{orderId}
+        ORDER BY o.create_time DESC
+    </select>
+
+    <select id="getOrdersAdmin" resultType="com.example.tea.entity.dto.Order.OrderDTO">
+        SELECT
+            o.order_id,
+            o.create_time,
+            o.quantity,
+            g.goods_name,
+            g.goods_image,
+            g.goods_price,
+            g.goods_intro,
+            od.coupon_id,
+            od.total_price,
+            o.status
+        FROM `order` o
+                 LEFT JOIN goods g ON o.goods_id = g.goods_id
+                 LEFT JOIN order_detail od ON CAST(o.order_id AS CHAR) = od.order_id
+        ORDER BY o.create_time DESC
+    </select>
+
+
+</mapper>

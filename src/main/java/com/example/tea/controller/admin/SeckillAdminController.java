@@ -1,0 +1,41 @@
+package com.example.tea.controller.admin;
+
+import com.example.tea.annotation.OperLog;
+import com.example.tea.entity.pojo.Result;
+import com.example.tea.service.SeckillService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+
+/**
+ * (Admin管理员)秒杀商品接口
+ */
+@RestController
+@RequestMapping("/api/admin/seckill")
+public class SeckillAdminController {
+    @Autowired
+    private SeckillService seckillService;
+
+    /**
+     * 设置秒杀商品库存
+     * @return
+     */
+
+    @PostMapping("initStock")
+    @OperLog(module = "秒杀商品", type = "设置库存")
+    public Result initStock(Long goodsId, int stock, BigDecimal goodsPrice) {
+        return Result.success(seckillService.initStock(goodsId, stock,goodsPrice));
+    }
+    /**
+     * 获取所有秒杀商品
+     * @return
+     */
+    @GetMapping("getAllSeckillGoods")
+    public Result getAllSeckillGoods() {
+        return Result.success(seckillService.getAllSeckillGoods());
+    }
+}

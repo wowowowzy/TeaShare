@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.tea.mapper.CouponMapper">
+    <insert id="insertQuestionCoupon" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO coupon (
+            user_id,
+            intro,
+            reduce_amount,
+            min_amount,
+            start_time,
+            end_time,
+            status,
+            create_time,
+            update_time
+        )
+        VALUES (
+                   #{userId},
+                   #{intro},
+                   #{reduceAmount},
+                   #{minAmount},
+                   #{startTime},
+                   #{endTime},
+                   #{status},
+                   #{createTime},
+                   #{updateTime}
+               )
+    </insert>
+
+
+    <update id="useCoupon">
+        update coupon set status=#{status},use_time=#{useTime}
+                        ,update_time=#{updateTime},order_id=#{orderId}
+        where id =#{id}
+
+    </update>
+    <update id="updateExpiredCoupon">
+        UPDATE coupon
+        SET
+        status = CASE
+        <foreach collection="coupons" item="item" separator="">
+            WHEN id = #{item.id} THEN #{item.status}
+        </foreach>
+        END,
+        use_time = CASE
+        <foreach collection="coupons" item="item" separator="">
+            WHEN id = #{item.id} THEN #{item.useTime}
+        </foreach>
+        END,
+        update_time = CASE
+        <foreach collection="coupons" item="item" separator="">
+            WHEN id = #{item.id} THEN #{item.updateTime}
+        </foreach>
+        END
+        WHERE
+        id IN
+        <foreach collection="coupons" item="item" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
+
+</mapper>

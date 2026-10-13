@@ -1,0 +1,18 @@
+package com.example.tea.service;
+
+import com.example.tea.entity.dto.Order.OrderPayDTO;
+import com.example.tea.entity.vo.Order.OrderListVO;
+
+import java.util.List;
+
+public interface OrderService {
+    void pay(List<OrderPayDTO> payDTOList,Long couponId,Long userId) throws Exception;
+
+   List<OrderListVO> getOrders();
+
+    OrderListVO getOrderById(Long orderId);
+
+    List<OrderListVO> showApprovalList();
+
+    void approval(Long orderId);
+}

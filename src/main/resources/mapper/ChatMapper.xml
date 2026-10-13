@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.tea.mapper.ChatMapper">
+
+    <insert id="add">
+        INSERT INTO `sys_history` ( `datetime`, `content`, `role`, `session_id`,`user_id`)
+        VALUES (
+                   #{datetime},
+                   #{content},
+                   #{role},
+                   #{sessionId},
+                   #{userId}
+               );
+    </insert>
+
+    <insert id="batchInsert">
+        INSERT INTO `sys_history` (`datetime`, `content`, `role`, `session_id`, `user_id`)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.datetime}, #{item.content}, #{item.role}, #{item.sessionId}, #{item.userId})
+        </foreach>
+    </insert>
+
+    <select id="listWindowBySessionId" resultType="com.example.tea.entity.pojo.ChatModel.History">
+        SELECT * FROM (
+            SELECT * FROM `sys_history`
+            WHERE session_id = #{sessionId}
+            ORDER BY id DESC
+            LIMIT #{limit}
+        ) t ORDER BY t.id ASC
+    </select>
+
+    <select id="listSessionIds" resultType="java.lang.Long">
+        SELECT DISTINCT session_id FROM `sys_history` WHERE session_id IS NOT NULL
+    </select>
+
+    <delete id="deleteBySessionId">
+        DELETE FROM `sys_history` WHERE session_id = #{sessionId}
+    </delete>
+
+</mapper>

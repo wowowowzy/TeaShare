@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.tea.mapper.KnowledgeMapper">
+
+    <insert id="upsert">
+        INSERT INTO `rag_knowledge` (`id`, `content`, `create_time`)
+        VALUES (#{id}, #{content}, NOW())
+        ON DUPLICATE KEY UPDATE `content` = VALUES(`content`), `create_time` = NOW()
+    </insert>
+
+    <select id="search" resultType="com.example.tea.ai.rag.dto.KnowledgeHit">
+        SELECT id,
+               content,
+               MATCH(content) AGAINST(#{query} IN NATURAL LANGUAGE MODE) AS score
+        FROM `rag_knowledge`
+        WHERE MATCH(content) AGAINST(#{query} IN NATURAL LANGUAGE MODE)
+        ORDER BY score DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

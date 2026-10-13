@@ -1,0 +1,91 @@
+package com.example.tea.mapper;
+
+import com.example.tea.entity.dto.Goods.GoodsDTO;
+import com.example.tea.entity.dto.Goods.GoodsInsertDTO;
+import com.example.tea.entity.dto.Goods.GoodsQueryDTO;
+import com.example.tea.entity.dto.Goods.GoodsStockDTO;
+import com.example.tea.entity.dto.Order.OrderAndGoodsDTO;
+import com.example.tea.entity.dto.Order.OrderPayDTO;
+import com.example.tea.entity.pojo.Goods.Goods;
+import com.example.tea.entity.pojo.Goods.GoodsReview;
+import com.example.tea.entity.vo.Goods.GoodsReviewVO;
+import com.example.tea.entity.vo.Goods.GoodsVO;
+import com.example.tea.entity.vo.Goods.GoodsWithQuantityVO;
+import com.example.tea.entity.vo.Goods.MyReviewVO;
+import com.github.pagehelper.Page;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Mapper
+public interface GoodsMapper {
+    Page<GoodsDTO> findAllGoods(GoodsQueryDTO goodsQueryDTO);
+
+    @Select("select goods_id,goods_name,goods_intro,goods_price,category_id,stock_num,goods_image from goods where goods_id=#{goodsId}")
+    GoodsVO findGoodById(Long goodsId);
+
+    List<OrderAndGoodsDTO> getTotalPrice(List<OrderPayDTO> payDTOList);
+
+    void insert(GoodsInsertDTO dto);
+
+    void updateById(Goods goods);
+
+    void deleteById(Long goodsId);
+
+    Page<Goods> findAllGoodsAdmin(GoodsQueryDTO goodsQueryDTO);
+
+    @Select("select * from goods where goods_id=#{goodsId}")
+    Goods findGoodByIdAdmin(Long goodsId);
+
+    Integer updateStocks(List<OrderPayDTO> list);
+
+    @Insert("insert into goods_seckill(goods_id,goods_name,goods_intro,goods_price,category_id,stock_num,goods_image) values(#{goodsId},#{goodsName},#{goodsIntro},#{goodsPrice},#{categoryId},#{stockNum},#{goodsImage})")
+    void initStock(GoodsVO goodsVO);
+
+    @Update("update goods_seckill set stock_num = stock_num - 1 where goods_id=#{goodsId}")
+    void subSeckillStock(Long goodsId);
+
+    @Select("select count(*) from goods_seckill where goods_id=#{goodsId}")
+    Integer vaildateSeckill(Long goodsId);
+
+    @Update("update goods_seckill set stock_num=#{stock},goods_price = #{goodsPrice} where goods_id= #{goodsId}")
+    void updateSeckillStocks(Long goodsId, int stock, BigDecimal goodsPrice);
+
+    @Select("select goods_id, goods_name, goods_intro, goods_price, category_id, stock_num, goods_image from goods_seckill")
+    List<GoodsVO> getAllSeckillGoods();
+
+    @Update("update goods set stock_num = stock_num - 1 where goods_id=#{goodsId} and stock_num > 0")
+    void subGoodsStock(Long goodsId);
+
+    @Select("select goods_price from goods_seckill where goods_id= #{goodsId}")
+    BigDecimal findSeckillGoodById(Long goodsId);
+
+    @Select("select * from goods where category_id =#{categoryId} ORDER BY RAND()  LIMIT 3")
+    List<Goods> getTeaByCategoryId(Long categoryId);
+
+    GoodsWithQuantityVO findGoodDetail(Long goodsId);
+
+    void addReview(GoodsReview goodsReview);
+
+    List<GoodsReviewVO> getReviewByGoodsId(Long goodsId,Long userId);
+
+    @Update("update goods_review set like_count = like_count+#{cancel} where id = #{reviewId}")
+    void likeReview(Long reviewId, Integer cancel);
+
+    List<GoodsWithQuantityVO> getAllGoodsDetail();
+
+    @Select("SELECT goods_id FROM goods WHERE goods_name LIKE CONCAT('%', #{goodsName}, '%') limit 1")
+    Integer getGoodsIdByName(String goodsName);
+
+    @Select("select id as reviewId,content,level,like_count,image from goods_review where user_id=#{userId}")
+    List<MyReviewVO> getMyReview(Long userId);
+
+    @Select("select stock_num from goods where goods_id =#{goodsId}")
+    Integer getGoodStock(Long goodsId);
+
+    List<GoodsStockDTO> getGoodsByList(List<Long> list);
+}
