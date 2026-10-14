@@ -1,7 +1,6 @@
 package com.example.tea.rabbitmq.consumer;
 
 import cn.hutool.core.lang.Snowflake;
-import cn.hutool.core.util.IdUtil;
 import com.example.tea.config.RabbitMQseckillConfig;
 import com.example.tea.entity.dto.Goods.SeckillGoodsMessageDTO;
 import com.example.tea.entity.pojo.Order.Order;
@@ -50,7 +49,9 @@ public class SeckillConsumer {
     private SeckillConsumer consumer;
     @Autowired
     private RedisTemplate<String,Object> redisTemplate;
-    private final Snowflake snowflake = IdUtil.getSnowflake();
+    /** 全局唯一雪花生成器（统一 Bean，避免多实例同毫秒撞号）。 */
+    @Autowired
+    private Snowflake snowflake;
     private static final String STOCK_PREFIX = "seckill:stock:";
     private static final String USER_PREFIX = "seckill:user:";
 

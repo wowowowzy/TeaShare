@@ -1,7 +1,6 @@
 package com.example.tea.service.impl;
 
 import cn.hutool.core.lang.Snowflake;
-import cn.hutool.core.util.IdUtil;
 import com.example.tea.annotation.OperLog;
 import com.example.tea.config.RabbitMQseckillConfig;
 import com.example.tea.entity.dto.Goods.SeckillGoodsMessageDTO;
@@ -38,7 +37,9 @@ public class OrderServiceImpl implements OrderService {
     private CouponMapper couponMapper;
     @Autowired
     private GoodsMapper goodsMapper;
-    private final Snowflake snowflake = IdUtil.getSnowflake();
+    /** 全局唯一雪花生成器（统一 Bean，避免多实例同毫秒撞号）。 */
+    @Autowired
+    private Snowflake snowflake;
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void pay(List<OrderPayDTO> payDTOList, Long couponId,Long id) throws Exception {

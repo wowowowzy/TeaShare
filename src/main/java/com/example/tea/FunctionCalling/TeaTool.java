@@ -25,6 +25,9 @@ public class TeaTool {
     private OrderService orderService;
     @Autowired
     private GoodsMapper goodsMapper;
+    /** 统一使用 Spring Boot 配置好的 ObjectMapper，避免每次调用 new。 */
+    @Autowired
+    private ObjectMapper objectMapper;
     private enum TeaTypeEnum {
         greenTea,    // 对应 绿茶
         blackTea,    // 对应 红茶
@@ -61,7 +64,6 @@ public class TeaTool {
 
             result.put("recommendTeaList", list); // 直接放商品列表
 
-            ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
         } catch (JsonProcessingException e) {
             return "暂无推荐";

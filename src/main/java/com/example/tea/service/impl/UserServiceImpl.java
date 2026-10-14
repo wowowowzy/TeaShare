@@ -1,7 +1,6 @@
 package com.example.tea.service.impl;
 
 import cn.hutool.core.lang.Snowflake;
-import cn.hutool.core.util.IdUtil;
 import com.example.tea.entity.dto.Goods.GoodsInsertDTO;
 import com.example.tea.entity.dto.User.LoginInfo;
 import com.example.tea.entity.dto.User.RegisterInfo;
@@ -32,7 +31,9 @@ public class UserServiceImpl implements UserService {
     private JwtUtil jwtUtil;
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final Snowflake snowflake = IdUtil.getSnowflake();
+    /** 全局唯一雪花生成器（统一 Bean，避免多实例同毫秒撞号）。 */
+    @Autowired
+    private Snowflake snowflake;
     @Override
     public LoginVO login(LoginInfo loginInfo) {
         User user = userMapper.login(loginInfo.getUsername());

@@ -24,6 +24,9 @@ public class OperLogAspect {
     private SysOperLogMapper operLogMapper;
     @Autowired
     private UserMapper userMapper;
+    /** 统一使用 Spring Boot 配置好的 ObjectMapper（含 JavaTime 等模块），避免各处 new。 */
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Pointcut("@annotation(com.example.tea.annotation.OperLog)")
     public void operLogPointCut() {}
@@ -61,7 +64,6 @@ public class OperLogAspect {
 
         // 请求参数
         Object[] args = joinPoint.getArgs();
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
             // Jackson 序列化请求参数
             String params = objectMapper.writeValueAsString(args);

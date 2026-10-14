@@ -46,6 +46,10 @@ public class ChatController {
     @Autowired
     private ChatMapper chatMapper;
 
+    /** 全局唯一雪花生成器（禁止 new Snowflake()，否则与其它实例撞号）。 */
+    @Autowired
+    private Snowflake snowflake;
+
     /**
      * 核心ai接口(Stream)
      */
@@ -98,11 +102,20 @@ public class ChatController {
     }
 
     /**
-     * 用userId查询聊天历史记录
+     * 查询当前登录用户的聊天历史记录。
+     * <p>
+     * 安全修复：用户身份只从 token 解析（UserInterceptor 已写入 ThreadLocal）。
+     * 方法上不声明 userId —— 客户端即使仍带 {@code ?userId=xxx}，Spring MVC 对未声明的
+     * 多余参数直接忽略、不会报错，因此旧前端无需改动；同时服务端也不可能再采信该参数，
+     * 彻底杜绝任意登录用户传他人 userId 越权读取聊天记录。
      */
     @GetMapping("/getHistories")
-    public Result getHistories(@RequestParam(value = "userId") Long userId) {
-        List<History> histories = chatMapper.getHisoriesByUserId(userId);
+    public Result getHistories() {
+        Long currentUserId = ThreadLocalUserIdUtil.getCurrentId();
+        if (currentUserId == null) {
+            return Result.error("未登录，请先登录");
+        }
+        List<History> histories = chatMapper.getHisoriesByUserId(currentUserId);
         Map<Long, List<History>> groupBySessionAndSort = histories.stream()
                 .collect(Collectors.groupingBy(
                         History::getSessionId, // 第一步：按sessionId分组
@@ -122,7 +135,7 @@ public class ChatController {
      */
     @GetMapping("/newSession")
     public Result newSession() {
-        return Result.success(new Snowflake().nextId());
+        return Result.success(snowflake.nextId());
     }
 
 }

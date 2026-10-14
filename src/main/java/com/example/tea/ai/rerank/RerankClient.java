@@ -3,11 +3,18 @@ package com.example.tea.ai.rerank;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,14 +31,38 @@ import java.util.Map;
  * <pre>POST {scheme}://{host}/api/v1/services/rerank/text-rerank/text-rerank</pre>
  * 这里从 {@code spring.ai.openai.base-url}（形如 {@code https://xxx/compatible-mode}）推导出 host，
  * 再拼上可配置的 {@code tea.ai.rerank.path}，所以无需额外维护一份域名配置。
+ * <p>
+ * <b>为什么用文件内单例而不是注入全局 Bean：</b>全局 AI 的 {@code RestClient.Builder}
+ * 由 Spring AI 共享（它会对 builder 做 clone，但底层连接池是同一个），
+ * 给它设置 socket/response 超时会掐断 LLM 流式响应。所以此处自建一个专用连接池，
+ * 只给重排调用设短超时（重排卡住不能拖死 Tomcat 线程）。
  */
 @Slf4j
 @Component
 public class RerankClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** 专用 HTTP 客户端：10s 连接 / 30s 响应，与全局 AI 池隔离。 */
+    private final RestTemplate restTemplate = buildRestTemplate();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    /** 注入 Spring Boot 全局 ObjectMapper（此处仅做只读序列化/解析，不会修改其配置，无污染风险）。 */
+    private final ObjectMapper objectMapper;
+
+    private static RestTemplate buildRestTemplate() {
+        ConnectionConfig connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofSeconds(10))
+                .setSocketTimeout(Timeout.ofSeconds(30))
+                .build();
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+        connManager.setMaxTotal(20);
+        connManager.setDefaultMaxPerRoute(10);
+        connManager.setDefaultConnectionConfig(connectionConfig);
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(connManager)
+                .evictExpiredConnections()
+                .evictIdleConnections(org.apache.hc.core5.util.TimeValue.ofSeconds(30))
+                .build();
+        return new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
+    }
 
     private final String url;
 
@@ -42,7 +73,8 @@ public class RerankClient {
     public RerankClient(@Value("${spring.ai.openai.base-url}") String baseUrl,
                         @Value("${spring.ai.openai.api-key}") String apiKey,
                         @Value("${tea.ai.rerank.path:/api/v1/services/rerank/text-rerank/text-rerank}") String path,
-                        @Value("${tea.ai.rerank.model:qwen3.7-text-rerank}") String model) {
+                        @Value("${tea.ai.rerank.model:qwen3.7-text-rerank}") String model,
+                        ObjectMapper objectMapper) {
         URI base = URI.create(baseUrl);
         StringBuilder origin = new StringBuilder(base.getScheme()).append("://").append(base.getHost());
         if (base.getPort() > 0) {
@@ -51,6 +83,7 @@ public class RerankClient {
         this.url = origin.append(path).toString();
         this.apiKey = apiKey;
         this.model = model;
+        this.objectMapper = objectMapper;
         log.info("重排端点初始化完成: {}", this.url);
     }
 

@@ -71,8 +71,22 @@ public interface CommunityMapper {
     @Update("UPDATE t_post SET like_count = like_count + #{cancel} where id=#{id} ")
     void likePost(Long id,Integer cancel);
 
-    @Update("update t_post set image =#{filePath} where id=#{postId}")
-    void addImage(String filePath, Long postId);
+    /**
+     * 统计帖子是否归属指定用户（越权前置校验用，避免先上传再拒绝）。
+     */
+    @Select("select count(*) from t_post where id = #{postId} and user_id = #{currentId}")
+    int countOwnedPost(Long postId, Long currentId);
+
+    /**
+     * 更新帖子封面。
+     * <p>
+     * 安全修复：WHERE 增加 user_id 归属校验（仅帖子作者可改），
+     * 且用受影响行数判断是否命中；越权请求返回 0，不会静默改掉他人封面。
+     *
+     * @return 受影响行数（0 表示帖子不存在或不属于该用户）
+     */
+    @Update("update t_post set image = #{filePath} where id = #{postId} and user_id = #{currentId}")
+    int addImage(String filePath, Long postId, Long currentId);
 
     @Select("select * from collect_record where user_id= #{currentId} and post_id= #{id}")
     Collect checkCollect(Long id, Long currentId);
