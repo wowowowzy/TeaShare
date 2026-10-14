@@ -128,8 +128,12 @@ public class CommunityController {
      */
     @DeleteMapping("/deleteComment")
     public Result deleteComment(@RequestParam("commentId") Long id){
-        communityService.deleteComment(id);
-        return Result.success();
+        try {
+            communityService.deleteComment(id);
+            return Result.success();
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     /**

@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,15 @@ public class SeckillServiceImpl implements SeckillService {
         // 2. 判断用户是否已经抢过（Redis判断）
         if (Boolean.TRUE.equals(redisTemplate.hasKey(userKey))) {
             return "您已经抢购过此商品";
+        }
+
+        // 2.1 Redis 库存不存在（未初始化）或已为 0：直接拒绝，不进入扣减
+        String currentStock = redisTemplate.opsForValue().get(stockKey);
+        if (currentStock == null) {
+            return "秒杀尚未开始";
+        }
+        if (Long.parseLong(currentStock) <= 0) {
+            return "已抢完";
         }
 
         // 3. 原子扣库存（最核心！防超卖）
@@ -109,16 +119,29 @@ public class SeckillServiceImpl implements SeckillService {
     @Override
     public List<GoodsVO> getAllSeckillGoods() {
         List<GoodsVO> seckillGoods = goodsMapper.getAllSeckillGoods();
+        if (seckillGoods == null || seckillGoods.isEmpty()) {
+            return seckillGoods == null ? Collections.emptyList() : seckillGoods;
+        }
         List<Long> goodsIds = seckillGoods.stream().map(GoodsVO::getGoodsId).toList();
         Map<Long, Integer> collect = goodsMapper.getGoodsByList(goodsIds).stream().collect(Collectors.toMap(GoodsStockDTO::getGoodsId, GoodsStockDTO::getStockNum));
         seckillGoods.forEach(dto->{
             Integer goodsStock = collect.get(dto.getGoodsId());
             //真实库存不足时
-            if(goodsStock<=dto.getStockNum()){
-                dto.setStockNum(goodsStock);
+            if (goodsStock != null && goodsStock <= dto.getStockNum()){
                 String stockKey = STOCK_PREFIX + dto.getGoodsId();
-                //修改redis库存防止超卖
-                redisTemplate.opsForValue().set(stockKey, String.valueOf(goodsStock));
+                //修改redis库存防止超卖：只降不升——Redis 中可能已有更低的在途预留值（用户已扣、MQ 排队中），
+                //直接覆盖会把库存抬高重新放出，导致超卖。取两者较小值写回并展示。
+                int newStock = goodsStock;
+                String current = redisTemplate.opsForValue().get(stockKey);
+                if (current != null) {
+                    try {
+                        newStock = Math.min(Integer.parseInt(current), goodsStock);
+                    } catch (NumberFormatException ignored) {
+                        //Redis 值异常时按 DB 库存写回
+                    }
+                }
+                dto.setStockNum(newStock);
+                redisTemplate.opsForValue().set(stockKey, String.valueOf(newStock));
             }
         });
         return seckillGoods;

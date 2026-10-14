@@ -37,16 +37,23 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public List<QuestionVO> getQuestion() {
         Integer scope = questionMapper.queryQuestionScope();//查询当前questionId的最大值方便分配id
+        //题库为空（MAX 返回 NULL）时直接返回空列表，避免随机数越界/死循环
+        if (scope == null || scope < 1) {
+            return List.of();
+        }
         //随机数id根据sqlid变化
         List<Integer> randoms = new ArrayList<>(5);
-        while (true){
-            int random = ThreadLocalRandom.current().nextInt(1, scope+1);
+        //有界去重抽样：最多尝试 scope*2 次，避免题库不足时 while(true) 死循环
+        int maxTries = Math.max(scope * 2, 10);
+        for (int i = 0; i < maxTries && randoms.size() < 5; i++) {
+            int random = ThreadLocalRandom.current().nextInt(1, scope + 1);
             if (!randoms.contains(random)) {
                 randoms.add(random);
             }
-            if (randoms.size() == 5) {
-                break;
-            }
+        }
+        if (randoms.isEmpty()) {
+            //理论上不会走到，兜底返回空列表
+            return List.of();
         }
         List<QuestionDTO> questionDTOS = questionMapper.queryQuestionByIds(randoms);
         Map<Integer, List<QuestionDTO>> collect = questionDTOS.stream().collect(Collectors.groupingBy(QuestionDTO::getQuestionId));

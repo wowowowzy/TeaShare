@@ -199,7 +199,11 @@ public class CommunityServiceImpl implements CommunityService {
     public void deleteMyPost(Long postId) {
         //删掉帖子关键词（缓存失效）
         keywordExtractor.evict(postId);
-        communityMapper.deleteMyPost(postId,ThreadLocalUserIdUtil.getCurrentId());
+        int deleted = communityMapper.deleteMyPost(postId,ThreadLocalUserIdUtil.getCurrentId());
+        if (deleted == 0) {
+            //帖子不存在或不属于当前用户：幂等返回，不执行后续向量库删除
+            return;
+        }
         //更新推荐算法向量库
         try {
             String id = postId.toString();
@@ -241,6 +245,17 @@ public class CommunityServiceImpl implements CommunityService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteComment(Long id) {
+        Long currentUserId = ThreadLocalUserIdUtil.getCurrentId();
+        //越权校验：只有评论作者本人能删除自己的评论
+        Long commentUserId = communityMapper.getCommentUserId(id);
+        if (commentUserId == null) {
+            //评论已不存在：幂等处理，直接返回成功（不发无效权重，也不改变前端返回结构）
+            log.info("评论不存在或已删除，忽略本次删除: commentId={}", id);
+            return;
+        }
+        if (!commentUserId.equals(currentUserId)) {
+            throw new RuntimeException("只能删除自己的评论");
+        }
         //先查 postId：评论删除后 getPostByCommentId 会查不到（原来的顺序拿到的必然是 null，
         //导致 -COMMENT 权重挂在 null postId 上被消费者丢弃）
         Long postId = communityMapper.getPostByCommentId(id);
@@ -392,6 +407,10 @@ public class CommunityServiceImpl implements CommunityService {
     public List<MyCollectVO> getCollect() {
         try {
             List<Integer> postIdList = communityMapper.getCollect(ThreadLocalUserIdUtil.getCurrentId());
+            //空收藏时直接返回空列表，避免 IN () 语法错误
+            if (postIdList == null || postIdList.isEmpty()) {
+                return Collections.emptyList();
+            }
             return communityMapper.getPostListByPostId(postIdList);
         } catch (Exception e) {
             throw new RuntimeException(e);

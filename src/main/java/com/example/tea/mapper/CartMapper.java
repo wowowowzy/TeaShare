@@ -19,4 +19,10 @@ public interface CartMapper {
 
     @Select("select * from cart left join goods g on cart.goods_id = g.goods_id where cart.user_id=#{userId}")
     List<CartVO> get(Long userId);
+
+    @Select("select count(*) from cart where user_id=#{userId} and goods_id=#{goodsId}")
+    int countExist(Integer goodsId, Long userId);
+
+    @Update("update cart set quantity = quantity + #{quantity}, update_time = now() where user_id=#{userId} and goods_id=#{goodsId}")
+    void addQuantity(Integer goodsId, Integer quantity, Long userId);
 }

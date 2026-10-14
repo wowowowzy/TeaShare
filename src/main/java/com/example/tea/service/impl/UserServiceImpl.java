@@ -118,7 +118,7 @@ public class UserServiceImpl implements UserService {
                     .state(0)
                     .reason("用户未注册")
                     .build(); // 直接返回“未注册”提示
-        }else if (!user.getRemark().equalsIgnoreCase("admin")){
+        }else if (!"admin".equalsIgnoreCase(user.getRemark())){
             return LoginVO.builder()
                     .state(0)
                     .reason("不是管理员")

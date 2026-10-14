@@ -19,23 +19,29 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     /**
-     * 忽略扫描器乱访问页面的错误
+     * 忽略扫描器乱访问页面的错误（返回 404 JSON，而非 200 空响应）
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public void handleNoResourceFound() {}
+    public ResponseEntity<Result> handleNoResourceFound() {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.error("资源不存在"));
+    }
 
     /**
-     * 忽略非法请求字符错误
+     * 非法请求参数
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public void handleIllegalArgument() {}
-
+    public ResponseEntity<Result> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Result.error(e.getMessage() == null ? "非法参数" : e.getMessage()));
+    }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public void handleMethodNotSupported() {}
+    public ResponseEntity<Result> handleMethodNotSupported() {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(Result.error("请求方法不支持"));
+    }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public void handleMessageNotReadable() {
+    public ResponseEntity<Result> handleMessageNotReadable() {
+        return ResponseEntity.badRequest().body(Result.error("请求体格式错误"));
     }
     /**
      * 拦截畸形 JSON/XML 请求体（常见于反序列化漏洞探测）
@@ -45,7 +51,9 @@ public class GlobalExceptionHandler {
      * 直接返回 413，切断连接。
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public void handleMaxUploadSizeExceeded() {}
+    public ResponseEntity<Result> handleMaxUploadSizeExceeded() {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Result.error("文件大小超出限制"));
+    }
     /**
      * 其他未知异常
      */

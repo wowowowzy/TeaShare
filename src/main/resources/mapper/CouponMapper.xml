@@ -31,7 +31,7 @@
     <update id="useCoupon">
         update coupon set status=#{status},use_time=#{useTime}
                         ,update_time=#{updateTime},order_id=#{orderId}
-        where id =#{id}
+        where id =#{id} and status = 1
 
     </update>
     <update id="updateExpiredCoupon">

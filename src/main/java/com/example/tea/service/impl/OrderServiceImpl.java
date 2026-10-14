@@ -82,6 +82,9 @@ public class OrderServiceImpl implements OrderService {
         // 获取优惠券并且抵扣
         if (couponId != null) {
             Coupon coupon = couponMapper.getCouponByCouponId(couponId);
+            if (coupon == null) {
+                throw new Exception("优惠券使用失败：优惠券不存在");
+            }
             BigDecimal minAmount = coupon.getMinAmount();
             BigDecimal reduceAmount = coupon.getReduceAmount();
             if (!Coupon.vaildate(coupon)) { // 修复逻辑：校验失败直接抛异常
@@ -99,8 +102,11 @@ public class OrderServiceImpl implements OrderService {
                     .updateTime(LocalDateTime.now())
                     .orderId(orderId)
                     .build();
-            couponMapper.useCoupon(buildCoupon);
-        }
+            int used = couponMapper.useCoupon(buildCoupon);
+            if (used == 0) {
+                // 并发/重复使用时，WHERE status=1 已保证只有未使用的券能被占用；未命中即视为已被使用/失效
+                throw new Exception("优惠券使用失败：优惠券已被使用或已失效");
+            }        }
 
         OrderDetail orderDetail = OrderDetail.builder()
                 .orderId(String.valueOf(orderId))
@@ -151,6 +157,9 @@ public class OrderServiceImpl implements OrderService {
     public OrderListVO getOrderById(Long orderId) {
         Long userId = ThreadLocalUserIdUtil.getCurrentId();
         List<OrderDTO> orders = orderMapper.getOrderById(orderId,userId);
+        if (orders == null || orders.isEmpty()) {
+            throw new RuntimeException("订单不存在或不属于当前用户");
+        }
         List<OrderListDTO> list = orders.stream().map(DTO -> {
             OrderListDTO orderListDTO = new OrderListDTO();
             BeanUtils.copyProperties(DTO, orderListDTO);

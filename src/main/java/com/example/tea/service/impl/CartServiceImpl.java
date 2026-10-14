@@ -17,12 +17,18 @@ public class CartServiceImpl implements CartService {
     private CartMapper cartMapper;
     @Override
     public void insert(Integer goodsId,Integer quantity) {
+        Long userId = ThreadLocalUserIdUtil.getCurrentId();
+        //重复添加同一商品时累加数量，避免购物车出现重复条目
+        if (cartMapper.countExist(goodsId, userId) > 0) {
+            cartMapper.addQuantity(goodsId, quantity, userId);
+            return;
+        }
         Cart cart = Cart.builder()
                 .goodsId(goodsId)
                 .quantity(quantity)
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
-                .userId(ThreadLocalUserIdUtil.getCurrentId())
+                .userId(userId)
                 .build();
         cartMapper.insert(cart);
     }

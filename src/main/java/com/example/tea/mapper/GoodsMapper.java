@@ -46,7 +46,7 @@ public interface GoodsMapper {
     @Insert("insert into goods_seckill(goods_id,goods_name,goods_intro,goods_price,category_id,stock_num,goods_image) values(#{goodsId},#{goodsName},#{goodsIntro},#{goodsPrice},#{categoryId},#{stockNum},#{goodsImage})")
     void initStock(GoodsVO goodsVO);
 
-    @Update("update goods_seckill set stock_num = stock_num - 1 where goods_id=#{goodsId}")
+    @Update("update goods_seckill set stock_num = stock_num - 1 where goods_id=#{goodsId} and stock_num > 0")
     void subSeckillStock(Long goodsId);
 
     @Select("select count(*) from goods_seckill where goods_id=#{goodsId}")

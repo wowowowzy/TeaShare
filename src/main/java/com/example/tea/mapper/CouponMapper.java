@@ -21,7 +21,7 @@ public interface CouponMapper {
     @Select("select * from coupon where id=#{couponId}")
     Coupon getCouponByCouponId(Long couponId);
 
-    void useCoupon(Coupon coupon);
+    int useCoupon(Coupon coupon);
 
     @Select("select  * from coupon where status = 1 and end_time < NOW()")
     List<Coupon> getExpiredCoupon();

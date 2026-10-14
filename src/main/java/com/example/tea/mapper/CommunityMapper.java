@@ -41,7 +41,7 @@ public interface CommunityMapper {
     void updateMyPost(UpdateMyPostDTO updateMyPost);
 
     @Delete("delete from t_post where id=#{postId} and user_id=#{currentId}")
-    void deleteMyPost(Long postId, Long currentId);
+    int deleteMyPost(Long postId, Long currentId);
 
     void comment(@Param(value = "dto") NewCommentDTO newCommentDTO,@Param("userId") Long userId);
 
@@ -116,4 +116,8 @@ public interface CommunityMapper {
 
     @Select("select post_id from t_comment where id=#{id}")
     Long getPostByCommentId(Long id);
+
+    /** 查询评论的作者ID（越权校验用）。 */
+    @Select("select user_id from t_comment where id=#{id}")
+    Long getCommentUserId(Long id);
 }

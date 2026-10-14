@@ -23,6 +23,9 @@ public class OrderController {
     @PostMapping("/pay")
     public Result pay(@RequestBody List<OrderPayDTO> list,
                       @RequestParam(required = false) Long couponId) {
+        if (list == null || list.isEmpty()) {
+            return Result.error("必须参数未填写");
+        }
         if (list.get(0).getQuantity()==null||list.get(0).getGoodsId()==null){
             return Result.error("必须参数未填写");
         }
@@ -51,8 +54,12 @@ public class OrderController {
      */
     @GetMapping("/getOrderById")
     public Result getOrderById(Long orderId){
-         OrderListVO vo = orderService.getOrderById(orderId);
-        return Result.success(vo);
+        try {
+            OrderListVO vo = orderService.getOrderById(orderId);
+            return Result.success(vo);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
     }
 
 }
