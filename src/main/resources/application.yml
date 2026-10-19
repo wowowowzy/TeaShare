@@ -5,6 +5,18 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    # 验证码依赖 HttpSession Cookie。同域反代后为第一方 Cookie，
+    # 这里显式声明属性，避免默认值在 HTTPS 下丢失。
+    session:
+      cookie:
+        name: TEA_SESSION
+        http-only: true
+        # 生产走 HTTPS：Cookie 打上 Secure 标记，只在加密信道传输（防会话嗅探）。
+        # 若本地用 http:// 直连后端调试，需在 .env 里临时设 SESSION_COOKIE_SECURE=false，
+        # 否则浏览器会拒绝带回该 Cookie，验证码将失效。
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+        path: /
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

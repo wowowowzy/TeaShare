@@ -14,8 +14,17 @@ public class CorsConfig {
         // 1. 创建 CORS 配置对象
         CorsConfiguration config = new CorsConfiguration();
         // 允许的源
+        // 生产域名（前台 https://wowowzy.art/tea/ 与后台 https://wowowzy.art/tea/admin/）
+        config.addAllowedOriginPattern("https://wowowzy.art");
+        config.addAllowedOriginPattern("https://*.wowowzy.art");
+        config.addAllowedOriginPattern("http://wowowzy.art");
+        config.addAllowedOriginPattern("http://*.wowowzy.art");
+        // 旧服务器地址（保留兼容）
         config.addAllowedOriginPattern("http://101.43.39.143:666");
         config.addAllowedOriginPattern("http://101.43.39.143:10086");
+        // 本地开发（Vite dev server）
+        config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("http://127.0.0.1:*");
 //        config.addAllowedOriginPattern("*");
         // 允许携带 Cookie（前后端分离带 Token 时需开启）
         config.setAllowCredentials(true);
