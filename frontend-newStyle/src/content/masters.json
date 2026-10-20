@@ -1,0 +1,43 @@
+{
+  "_comment": "名师讲解内容数据。",
+  "_note": "image 中两个外链（Bing / 8531.cn）存在防盗链与失效风险，建议下载到本地 public/teacher/ 后替换。",
+  "sectionTitle": "名师列表",
+  "videoButtonText": "查看讲解视频",
+  "masters": [
+    {
+      "id": 1,
+      "name": "林伟周",
+      "title": "国家级非遗级制茶大师",
+      "specialty": "茶艺制作过程讲解",
+      "bio": "林伟周，潮州凤凰山三代制茶世家，乌龙茶制作技艺（潮州单丛茶制作技艺）省级非遗代表性传承人，国务院特殊津贴专家，南馥茶业创始人，潮安区茶叶协会会长。",
+      "image": "https://tse4-mm.cn.bing.net/th/id/OIP-C.MxoASlXIs0xI_jJ1fTAcUAHaE8?w=276&h=184&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      "imageLocalSuggestion": "/teacher/林伟周.jpg（建议下载后放此处）",
+      "videoUrl": "https://tv.cctv.com/2025/06/15/VIDEKMWuaZ9jpUs9aTxAnH54250615.shtml",
+      "videoPlatform": "cctv"
+    },
+    {
+      "id": 2,
+      "name": "王岳飞",
+      "title": "中国科协全国首席科学传播（茶学）专家",
+      "specialty": "茶史讲解",
+      "bio": "王岳飞，浙江大学茶学学科带头人，教授、博士生导师，国家一级评茶师，国内茶学界与茶文化传播领域的标志性人物。",
+      "image": "/teacher/老师2.png",
+      "videoUrl": "https://www.bilibili.com/video/BV1YJ411x7v9?spm_id_from=333.788.videopod.episodes",
+      "videoPlatform": "bilibili",
+      "bvid": "BV1YJ411x7v9"
+    },
+    {
+      "id": 3,
+      "name": "王旭烽",
+      "title": "高级评茶师",
+      "specialty": "品茶艺术讲解",
+      "bio": "王旭烽，高级评茶师，擅长茶叶审评和品质鉴定，对广东各茶区的茶叶特性有深入研究。她致力于推广科学的品茶方法，让更多人了解茶的魅力和文化内涵。",
+      "image": "https://meizi-chao-pub.8531.cn/1749340400344256522_720px.jpeg?width=720&height=540",
+      "imageLocalSuggestion": "/teacher/王旭烽.jpg（建议下载后放此处）",
+      "videoUrl": "https://www.bilibili.com/video/BV1rB4y1K71A?t=5.3",
+      "videoPlatform": "bilibili",
+      "bvid": "BV1rB4y1K71A"
+    }
+  ],
+  "_bilibiliPlayerNote": "B 站视频可用内嵌播放器：https://player.bilibili.com/player.html?bvid={bvid}&autoplay=1&high_quality=1&danmaku=0（原项目定义了此函数但未使用，实际是 window.open 跳转）"
+}

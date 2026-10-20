@@ -1,0 +1,502 @@
+/* =============================================================================
+   茗承古韵 · 全局设计系统
+   -----------------------------------------------------------------------------
+   风格：Editorial（编辑杂志风）
+     - 暖米色底 #F9F8F6 + 柔和黑字 #1C1C1C，纯单色，无彩色强调色
+     - 衬线标题 font-serif / 无衬线正文 font-sans
+     - 直角（无圆角）、无阴影、无渐变
+     - 用透明度层次（/60 /40 /10）构建灰度
+   ========================================================================== */
+
+@import 'tailwindcss';
+
+/* ---------- Design Tokens ---------- */
+@theme {
+  --color-background: #f9f8f6;
+  --color-foreground: #1c1c1c;
+  --color-border: rgb(28 28 28 / 0.1);
+  --color-muted: rgb(28 28 28 / 0.6);
+
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'Source Han Serif SC', 'SimSun',
+    'STSong', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+
+  --radius-none: 0px;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.75; /* leading-relaxed 起步 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
+    font-weight: 400; /* 标题永不加粗 */
+    letter-spacing: -0.02em; /* tracking-tighter 的近似 */
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* 键盘可达的焦点环：细线、单色，不使用彩色 */
+  :focus-visible {
+    outline: 1px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-foreground);
+    color: var(--color-background);
+  }
+}
+
+/* ---------- 组件级工具类 ---------- */
+@layer components {
+  /* 容器：max-w-7xl + px-6 md:px-12 */
+  .container-editorial {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .container-editorial {
+      padding-inline: 3rem;
+    }
+  }
+
+  /* 章节：py-24 md:py-40 */
+  .section-editorial {
+    padding-block: 6rem;
+  }
+  @media (min-width: 768px) {
+    .section-editorial {
+      padding-block: 10rem;
+    }
+  }
+
+  /* 小标签：uppercase + tracking */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(28 28 28 / 0.4);
+  }
+
+  /* 链接：hover-underline（从右向左展开的 scaleX 动画） */
+  .link-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .link-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-underline:hover::after,
+  .link-underline:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* 主按钮：实底反转 */
+  .btn-editorial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+    border: 1px solid var(--color-foreground);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .btn-editorial:hover:not(:disabled) {
+    background-color: transparent;
+    color: var(--color-foreground);
+  }
+  .btn-editorial:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* 次按钮：透明底 + 细边 */
+  .btn-editorial-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    background-color: transparent;
+    color: var(--color-foreground);
+    border: 1px solid rgb(28 28 28 / 0.2);
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+  .btn-editorial-ghost:hover:not(:disabled) {
+    border-color: var(--color-foreground);
+    background-color: rgb(28 28 28 / 0.02);
+  }
+  .btn-editorial-ghost:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* 卡片：细边 + hover 加深边框 */
+  .card-editorial {
+    border: 1px solid var(--color-border);
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+  .card-editorial:hover {
+    border-color: var(--color-foreground);
+  }
+
+  /* 分隔线 */
+  .rule {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* 表单底线输入框 */
+  .field-input {
+    width: 100%;
+    padding: 0.5rem 0;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--color-foreground);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid rgb(28 28 28 / 0.2);
+    transition: border-color 0.3s ease;
+  }
+  .field-input:focus {
+    outline: none;
+    border-bottom-color: var(--color-foreground);
+  }
+  .field-input::placeholder {
+    color: rgb(28 28 28 / 0.4);
+  }
+
+  /* 骨架屏：单色呼吸 */
+  .skeleton {
+    background-color: rgb(28 28 28 / 0.06);
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  /* 图片容器裁切 + 慢速放大（时装大片式凝视感） */
+  .zoom-frame {
+    overflow: hidden;
+  }
+  .zoom-frame img {
+    transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .group:hover .zoom-frame img,
+  .zoom-frame:hover img {
+    transform: scale(1.05);
+  }
+}
+
+/* ---------- 滚动条（单色） ---------- */
+@layer utilities {
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(28 28 28 / 0.2) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(28 28 28 / 0.2);
+  }
+  .scroll-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(28 28 28 / 0.4);
+  }
+
+  /* 隐藏滚动条但保留滚动 */
+  .scroll-none {
+    scrollbar-width: none;
+  }
+  .scroll-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /*
+   * 页面视觉缩放：等效于浏览器缩放到 80%。
+   *
+   * 背景：名师讲解 / AI 小茗 / 茶文化商城三页在 100% 下元素偏大、留白偏多，
+   * 用户手动缩到 80% 观感最佳。这里用 `zoom` 让默认显示直接达到该观感。
+   *
+   * 为什么用 `zoom` 而不是逐条改 font-size / padding：
+   *   `zoom` 作用于整个子树的布局坐标空间，字号、间距、图片、边框等比缩放，
+   *   且与浏览器缩放同源（Chrome 的 zoom 会真正参与布局，不像 transform:scale
+   *   只做视觉变换、留下右侧空白并让 fixed 定位错位）。
+   *
+   * 值取 0.8：用户 80% 缩放 = 内容按 0.8 倍呈现。
+   */
+  .page-zoom {
+    zoom: 0.8;
+  }
+
+  /* 不支持 zoom 的旧浏览器：退回等比缩放并补偿宽度，避免右侧留白 */
+  @supports not (zoom: 1) {
+    .page-zoom {
+      transform: scale(0.8);
+      transform-origin: top left;
+      width: 125%;
+    }
+  }
+}
+
+/* =============================================================================
+   Element Plus 主题覆盖：把 EP 拉回 Editorial 单色直角体系
+   （EP 仅用于复杂控件：弹窗/上传/分页/图片预览/日期等）
+   ========================================================================== */
+:root {
+  --el-color-primary: #1c1c1c;
+  --el-color-primary-light-3: #4a4a4a;
+  --el-color-primary-light-5: #6e6e6e;
+  --el-color-primary-light-7: #a3a3a3;
+  --el-color-primary-light-8: #c7c7c7;
+  --el-color-primary-light-9: #efeeec;
+  --el-color-primary-dark-2: #000;
+  --el-color-success: #1c1c1c;
+  --el-color-warning: #1c1c1c;
+  --el-color-danger: #1c1c1c;
+  --el-color-error: #1c1c1c;
+  --el-color-info: #1c1c1c;
+  --el-text-color-primary: #1c1c1c;
+  --el-text-color-regular: rgb(28 28 28 / 0.8);
+  --el-text-color-secondary: rgb(28 28 28 / 0.6);
+  --el-text-color-placeholder: rgb(28 28 28 / 0.4);
+  --el-border-color: rgb(28 28 28 / 0.1);
+  --el-border-color-light: rgb(28 28 28 / 0.1);
+  --el-border-color-lighter: rgb(28 28 28 / 0.06);
+  --el-border-radius-base: 0;
+  --el-border-radius-small: 0;
+  --el-border-radius-round: 0;
+  --el-border-radius-circle: 0;
+  --el-fill-color-blank: #f9f8f6;
+  --el-bg-color: #f9f8f6;
+  --el-bg-color-overlay: #f9f8f6;
+  --el-box-shadow: none;
+  --el-box-shadow-light: none;
+  --el-box-shadow-lighter: none;
+  --el-box-shadow-dark: none;
+  --el-font-family: var(--font-sans);
+}
+
+/* 弹窗 / 抽屉：直角、无阴影、细边 */
+.el-dialog,
+.el-message-box,
+.el-drawer {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid rgb(28 28 28 / 0.15);
+  background-color: #f9f8f6;
+}
+.el-dialog__title,
+.el-message-box__title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+.el-overlay {
+  background-color: rgb(28 28 28 / 0.4);
+}
+
+/* 表单控件：直角、细边 */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper,
+.el-input-number,
+.el-input-number__decrease,
+.el-input-number__increase {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent;
+  border: 1px solid rgb(28 28 28 / 0.15);
+}
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus,
+.el-select__wrapper.is-focused {
+  border-color: #1c1c1c;
+  box-shadow: none !important;
+}
+.el-textarea__inner {
+  border: 1px solid rgb(28 28 28 / 0.15);
+}
+
+/* 按钮：直角、无阴影 */
+.el-button {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--font-sans);
+}
+.el-button--primary {
+  background-color: #1c1c1c;
+  border-color: #1c1c1c;
+  color: #f9f8f6;
+}
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background-color: #3a3a3a;
+  border-color: #3a3a3a;
+  color: #f9f8f6;
+}
+
+/* 卡片 / 标签 / 分页 */
+.el-card {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid rgb(28 28 28 / 0.1);
+  background-color: transparent;
+}
+.el-tag {
+  border-radius: 0 !important;
+  background-color: transparent;
+  border-color: rgb(28 28 28 / 0.2);
+  color: #1c1c1c;
+}
+.el-pagination.is-background .el-pager li,
+.el-pager li,
+.el-pagination button {
+  border-radius: 0 !important;
+  background-color: transparent;
+  color: rgb(28 28 28 / 0.6);
+}
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: #1c1c1c;
+  color: #f9f8f6;
+}
+
+/* 上传 / 轮播 / 图片 */
+.el-upload--picture-card,
+.el-upload-list--picture-card .el-upload-list__item {
+  border-radius: 0 !important;
+  border: 1px solid rgb(28 28 28 / 0.15);
+  background-color: transparent;
+}
+.el-carousel__indicator .el-carousel__button {
+  border-radius: 0;
+  background-color: rgb(28 28 28 / 0.3);
+}
+.el-carousel__indicator.is-active .el-carousel__button {
+  background-color: #1c1c1c;
+}
+
+/* 消息提示 / 下拉 / 骨架 */
+.el-message,
+.el-notification {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid rgb(28 28 28 / 0.15);
+  background-color: #f9f8f6;
+}
+.el-popper,
+.el-dropdown__popper,
+.el-select__popper {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid rgb(28 28 28 / 0.15);
+}
+.el-skeleton__item {
+  border-radius: 0 !important;
+  background: rgb(28 28 28 / 0.06);
+}
+.el-tabs__item {
+  font-family: var(--font-sans);
+}
+.el-tabs__active-bar {
+  background-color: #1c1c1c;
+}
+.el-image-viewer__wrapper .el-image-viewer__mask {
+  background-color: rgb(28 28 28 / 0.9);
+}
+.el-loading-mask {
+  background-color: rgb(249 248 246 / 0.8);
+}
+
+/* ---------- 无障碍：尊重 reduced-motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

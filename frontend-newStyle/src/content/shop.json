@@ -1,0 +1,44 @@
+{
+  "_comment": "商城页内容数据：轮播图、商品分类、以及购物车的规格映射。",
+  "_note": "image 为站点根绝对路径，部署在 /tea/ 子目录时需拼接 BASE_URL。",
+  "banners": [
+    { "id": 1, "title": "限时优惠", "description": "欢迎来到茗享", "image": "/assest/轮播图1.png" },
+    { "id": 2, "title": "新品上市", "description": "2026年新茶已到货", "image": "/assest/轮播图2.png" },
+    { "id": 3, "title": "会员专享", "description": "优惠卷满200减50", "image": "/assest/轮播图3.png" }
+  ],
+  "categories": [
+    { "id": 1, "name": "绿茶" },
+    { "id": 2, "name": "红茶" },
+    { "id": 3, "name": "乌龙茶" },
+    { "id": 4, "name": "白茶" },
+    { "id": 5, "name": "普洱茶" },
+    { "id": 6, "name": "特种茶" }
+  ],
+  "uiText": {
+    "quizButton": "趣味闯关",
+    "quizHint": "答对三道送优惠券哦",
+    "seckillButton": "秒杀商品",
+    "seckillHint": "特价商品限量购买",
+    "searchPlaceholder": "请输入商品名称搜索",
+    "emptyText": "暂无商品数据",
+    "viewDetail": "查看详情",
+    "addToCart": "加入购物车",
+    "soldOut": "已售罄",
+    "buyNow": "立即抢购",
+    "stockLeft": "剩余库存量："
+  },
+  "cartSpecsMap": {
+    "_comment": "购物车规格兜底映射（按商品名关键词匹配）。原项目 CartView.getDefaultSpecs(name) 使用。",
+    "西湖龙井": "规格：250g/罐 | 产地：浙江杭州 | 采摘时间：2025年春",
+    "普洱": "规格：357g/饼 | 年份：2018年 | 产地：云南西双版纳",
+    "铁观音": "规格：500g/盒 | 等级：一级 | 产地：福建安溪",
+    "凤凰单丛": "规格：250g/袋 | 产地：广东潮州 | 等级：特级",
+    "_default": "规格：250g/袋 | 产地：中国 | 等级：一级"
+  },
+  "imageFallback": {
+    "_comment": "原项目大量使用 picsum.photos 占位图兜底，重写时建议替换为本地占位图。",
+    "productPlaceholder": "https://picsum.photos/800/800?random=999",
+    "avatarPlaceholder": "https://picsum.photos/100/100?random=",
+    "localSuggestion": "/assest/default.jpg"
+  }
+}

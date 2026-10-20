@@ -20,8 +20,8 @@
 - [AI 对话是怎么搭的](#ai-对话是怎么搭的)
 - [社区推荐是怎么算的](#社区推荐是怎么算的)
 - [项目结构](#项目结构)
+- [前端：两个版本](#前端两个版本)
 - [接口概览](#接口概览)
-- [踩过的坑](#踩过的坑)
 - [注意事项](#注意事项)
 
 ---
@@ -191,10 +191,43 @@ src/main/resources
 ├── RAGKnowledge.txt      知识库原始文本
 └── mapper/               Mapper XML
 
-frontend/                 用户端（Vue 3 + Vite）
+frontend/                 用户端 · 旧版（传统中式，青绿配色）
+frontend-newStyle/        用户端 · 新版（Editorial 编辑杂志风）
 frontend-admin/           管理端
 deploy/                   Nginx 配置（前后端同域部署）
 ```
+
+---
+
+## 前端：两个版本
+
+仓库里放了**两套用户端前端**，功能完全一致，只是视觉风格不同。可以按需选用或做 A/B 对比。
+
+| 目录 | 风格 | 状态 |
+|---|---|---|
+| `frontend/` | 传统中式茶文化风：青绿主色（`#008080`）、圆角、Element Plus 默认样式 | **线上稳定版** |
+| `frontend-newStyle/` | Editorial 编辑杂志风：暖米色 `#F9F8F6` + 柔和黑 `#1C1C1C`、衬线标题、直角、无阴影、纯单色 | 待测试 |
+
+两套都是 **Vue 3 + Vite**，接口层与后端契约一致，可独立构建部署：
+
+```bash
+cd frontend            # 或 frontend-newStyle
+npm install
+npm run dev            # 开发
+npm run build          # 产物 dist/
+```
+
+### 新风格（frontend-newStyle）的设计约束
+
+整体走「编辑杂志」的路子，刻意做减法：
+
+- **纯单色**：只用暖米色底 + 柔和黑字，靠透明度（`/60` `/40` `/10`）建立层次，不用彩色强调色；
+- **衬线标题 + 无衬线正文**：标题字重固定 400，靠字号与字距拉开层级；
+- **直角、无阴影、无渐变**：全部元素 `border-radius: 0`、`box-shadow: none`；
+- **大留白**：章节间距 `py-24 md:py-40`，容器 `max-w-7xl`；
+- **克制动效**：下划线由右向左展开、`group-hover:italic`、图片 `scale-105` 慢速放大。
+
+> 两套前端共用同一个后端与 Nginx 反代（`/tea/api/`），切换时**只需替换 Nginx `alias` 指向的目录**，后端无需改动。
 
 ---
 
@@ -212,45 +245,6 @@ deploy/                   Nginx 配置（前后端同域部署）
 认证走请求头 **`token`**（不是 `Authorization`）；分页参数 `page` / `pageSize`（默认 1 / 10）。
 
 主要模块：用户与验证码、商品与评论、购物车、订单、地址、优惠券、问答闯关、秒杀、文件上传、社区、AI 对话。
-
----
-
-## 踩过的坑
-
-这些都是实际调试中踩出来的，写下来省得重复踩：
-
-**1. Redis 不能用 `FLUSHDB` / `FLUSHALL`**
-
-RediSearch 索引只存在于 DB0，而 `FLUSHDB` 会把索引一起删掉，向量检索直接失效。
-真清空了也不用慌，**重启应用会自动重建**。
-
-**2. Redis 必须是 `redis-stack-server`**
-
-官方 `redis` 镜像没有 RediSearch，`FT.*` 命令不存在，向量检索起不来。
-
-**3. AI 流式接口的异常必须自己兜**
-
-上游大模型偶发 `Connection reset` 时，异常会冒到全局异常处理器——
-但那个处理器是给普通 JSON 接口写的，会把 `{"code":0,"msg":"未知异常"}` **写进已提交的 SSE 流**，
-前端只能收到一坨裸 JSON。
-
-所以 `ChatController` 在 `.content()` 之后用 `onErrorResume` 兜底，转成结构化事件：
-
-```
-{"type":"error","code":0,"msg":"AI 服务连接被重置，请重试"}
-```
-
-另外**参数绑定阶段**的异常（如 `sessionId=abc`）发生在 Controller 之前，`onErrorResume` 够不着，
-得在 `GlobalExceptionHandler` 里按 `Accept: text/event-stream` 分流。
-
-**4. 连接池的空闲连接会被对端单向关闭**
-
-`HttpClientConfig` 里做了 `validateAfterInactivity(20s)` + `evictIdleConnections(30s)`，
-复用前校验活性，能明显减少 `Connection reset`。
-
-**5. `userId` 不要从请求参数取**
-
-`/ai/getHistories` 只从 token 解析身份。旧写法收 `?userId=` 参数，等于允许任何人读别人聊天记录。
 
 ---
 
