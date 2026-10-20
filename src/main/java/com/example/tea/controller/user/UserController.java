@@ -41,6 +41,19 @@ public class UserController {
     }
 
     /**
+     * 退出登录
+     * <p>
+     * 幂等接口：携带 token 时把该 token 加入黑名单直至其自然过期；
+     * 未携带或 token 已过期也返回成功，避免前端退出流程被二次报错打断。
+     * @param token 请求头中的登录令牌
+     * @return
+     */
+    @PostMapping("/logout")
+    public Result logout(@RequestHeader(value = "token", required = false) String token){
+        return userService.logout(token);
+    }
+
+    /**
      * 展示主页
      * @return
      */

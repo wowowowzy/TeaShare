@@ -3,24 +3,73 @@ package com.example.tea.config;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.redis.RedisVectorStore;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisPooled;
 
+import java.time.Duration;
+
+/**
+ * Redis 向量库配置。
+ * <p>
+ * 这里复用 Spring Boot 的 {@code spring.data.redis.*} 连接参数（host/port/password/ssl/timeout），
+ * 但数据库必须单独指定：RediSearch/Redis Stack <b>只允许在 DB 0 创建向量索引</b>，
+ * 在非 0 库执行 {@code FT.CREATE} 会直接报
+ * {@code Cannot create index on db != 0}。
+ * <p>
+ * 因此本项目的实际布局是：
+ * <ul>
+ *   <li>向量库（RediSearch）：DB 0（由 {@code tea.vector.database} 控制，必须是 0）；</li>
+ *   <li>业务缓存（RedisTemplate/StringRedisTemplate）：{@code spring.data.redis.database}（同样为 0）。</li>
+ * </ul>
+ */
 @Configuration
 public class RedisVectorStoreConfig {
 
-    @Value("${spring.data.redis.host}")
-    private String redisHost;
+    private final RedisProperties redisProperties;
 
-    @Value("${spring.data.redis.port}")
-    private Integer redisPort;
+    /** 向量库固定使用的 DB：RediSearch 索引只能建在 DB 0。 */
+    @Value("${tea.vector.database:0}")
+    private int vectorDatabase;
 
-    // Redis 连接
+    public RedisVectorStoreConfig(RedisProperties redisProperties) {
+        this.redisProperties = redisProperties;
+    }
+
+    /**
+     * Redis 连接（与 RedisTemplate 共用同一个库、同一份认证信息）。
+     */
     @Bean
     public JedisPooled jedisPooled() {
-        return new JedisPooled(redisHost, redisPort);
+        // 与 spring.data.redis.timeout 保持一致；未配置时给一个保守的 1 秒
+        Duration timeout = redisProperties.getTimeout() == null
+                ? Duration.ofSeconds(1)
+                : redisProperties.getTimeout();
+
+        DefaultJedisClientConfig.Builder clientConfig = DefaultJedisClientConfig.builder()
+                // RediSearch 不支持在非 0 库建索引，向量库必须固定 DB 0
+                .database(vectorDatabase)
+                .connectionTimeoutMillis((int) timeout.toMillis())
+                .socketTimeoutMillis((int) timeout.toMillis());
+
+        if (StringUtils.hasText(redisProperties.getUsername())) {
+            clientConfig.user(redisProperties.getUsername());
+        }
+        if (StringUtils.hasText(redisProperties.getPassword())) {
+            clientConfig.password(redisProperties.getPassword());
+        }
+        if (redisProperties.getSsl().isEnabled()) {
+            clientConfig.ssl(true);
+        }
+
+        return new JedisPooled(
+                new HostAndPort(redisProperties.getHost(), redisProperties.getPort()),
+                clientConfig.build());
     }
 
     /**

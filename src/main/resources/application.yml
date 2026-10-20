@@ -30,16 +30,18 @@ spring:
     import: "optional:file:./.env[.properties]"
   data:
     redis:
-      database: 7
+      # 缓存（RedisTemplate/StringRedisTemplate）与向量库（RediSearch）统一使用 DB 0
+      # RediSearch 只允许在 DB 0 建索引，所以全部放 0
+      database: 0
       password: ${REDIS_PASSWORD:}
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
       timeout: 1000ms
-  # 缓存名称前缀（避免不同项目缓存key冲突）
+  # 一级缓存使用本地 Caffeine（见 CaffeineConfig）。Redis 不再作为 Spring Cache 的实现，
+  # 而是由业务代码通过 RedisTemplate 手动读写（商品详情 key 前缀统一在 CacheKeys 中定义），
+  # 因此这里不再配置 spring.cache.redis.*，避免出现“配了却不生效”的空配置。
   cache:
-    redis:
-      key-prefix: "hot_data:"  # 缓存key前缀：hot_data:xxx
-      use-key-prefix: true  # 启用前缀
+    type: caffeine
   servlet:
     multipart:
       max-file-size: 10MB
@@ -67,6 +69,17 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        # auto：listener 方法正常返回后才 ack，抛异常才 nack；这样 ack 与 DB 事务提交对齐
+        acknowledge-mode: auto
+        # 兜底：漏掉的异常不重回队列，避免毒消息无限重投
+        default-requeue-rejected: false
+        # 注意：并发调到 1 以上时，seckill:claim:{goodsId}:{userId} 幂等锁是必需的
+        concurrency: 1
+        max-concurrency: 4
+        # 不要用默认 250，避免多消费者时消息饥饿
+        prefetch: 1
 
 
 jwt:
@@ -81,6 +94,16 @@ alioss:
 
 # ==================== AI 记忆 / RAG 参数 ====================
 tea:
+  vector:
+    # 向量库与缓存统一在 DB 0。
+    # RediSearch/Redis Stack 只允许在 DB 0 创建索引（非 0 库 FT.CREATE 会报
+    # "Cannot create index on db != 0"），所以这里保持 0，不要改。
+    database: ${AI_VECTOR_REDIS_DATABASE:0}
+  init:
+    # 启动完成后是否执行数据预热（RAG 知识库、商品缓存、帖子关键词、推荐向量）
+    enabled: ${APP_INIT_ENABLED:true}
+    # true=后台线程执行，不阻塞启动；false=同步执行，启动完成前预热完毕
+    async: ${APP_INIT_ASYNC:true}
   mcp:
     express:
       # 快递查询 MCP(DashScope) 的 API Key，禁止硬编码

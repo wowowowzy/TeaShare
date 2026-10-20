@@ -40,7 +40,9 @@ public class SeckillServiceImpl implements SeckillService {
      */
     @Override
     public String seckill(Long goodsId) {
-        if (goodsMapper.getGoodStock(goodsId)<=0){
+        // 拆箱前必须判空：商品不存在时 getGoodStock 返回 null
+        Integer goodsStock = goodsMapper.getGoodStock(goodsId);
+        if (goodsStock == null || goodsStock <= 0){
             return "已抢完";
         }
         Long userId = ThreadLocalUserIdUtil.getCurrentId();

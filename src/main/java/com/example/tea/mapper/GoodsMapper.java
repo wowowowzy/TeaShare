@@ -47,7 +47,7 @@ public interface GoodsMapper {
     void initStock(GoodsVO goodsVO);
 
     @Update("update goods_seckill set stock_num = stock_num - 1 where goods_id=#{goodsId} and stock_num > 0")
-    void subSeckillStock(Long goodsId);
+    int subSeckillStock(Long goodsId);
 
     @Select("select count(*) from goods_seckill where goods_id=#{goodsId}")
     Integer vaildateSeckill(Long goodsId);
@@ -59,7 +59,7 @@ public interface GoodsMapper {
     List<GoodsVO> getAllSeckillGoods();
 
     @Update("update goods set stock_num = stock_num - 1 where goods_id=#{goodsId} and stock_num > 0")
-    void subGoodsStock(Long goodsId);
+    int subGoodsStock(Long goodsId);
 
     @Select("select goods_price from goods_seckill where goods_id= #{goodsId}")
     BigDecimal findSeckillGoodById(Long goodsId);

@@ -27,6 +27,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(       // 放行公开接口
                         "/api/user/register/**",
                         "/api/user/login/**",
+                        "/api/user/logout/**",
                         "/api/user/findAllGoods/**",
                         "/api/user/findGoodById/**",
                         "/api/user/captcha/**"

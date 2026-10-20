@@ -11,6 +11,7 @@ import com.example.tea.entity.pojo.User.User;
 import com.example.tea.entity.vo.User.LoginVO;
 import com.example.tea.entity.vo.User.UserVO;
 import com.example.tea.mapper.UserMapper;
+import com.example.tea.service.TokenBlacklistService;
 import com.example.tea.service.UserService;
 import com.example.tea.utils.JwtUtil;
 import com.example.tea.utils.ThreadLocalUserIdUtil;
@@ -34,6 +35,8 @@ public class UserServiceImpl implements UserService {
     /** 全局唯一雪花生成器（统一 Bean，避免多实例同毫秒撞号）。 */
     @Autowired
     private Snowflake snowflake;
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
     @Override
     public LoginVO login(LoginInfo loginInfo) {
         User user = userMapper.login(loginInfo.getUsername());
@@ -107,6 +110,12 @@ public class UserServiceImpl implements UserService {
             throw new Exception();
         }
         return userVO;
+    }
+
+    @Override
+    public Result logout(String token) {
+        tokenBlacklistService.revoke(token);
+        return Result.success();
     }
 
     @Override

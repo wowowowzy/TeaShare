@@ -14,6 +14,11 @@ public interface UserService {
 
     UserVO show() throws Exception;
 
+    /**
+     * 退出登录：把当前 token 加入黑名单（幂等，未携带 token 也视为成功）。
+     */
+    Result logout(String token);
+
     LoginVO loginAdmin(LoginInfo loginInfo);
 
     PageResult showUserAdmin(UserQueryDTO dto);

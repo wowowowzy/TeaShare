@@ -127,4 +127,28 @@ public class JwtUtil {
         // 获取自定义的userId
         return claims.get("remark", String.class);
     }
+
+    /**
+     * 计算 token 的剩余有效期（毫秒），供注销黑名单设置相同 TTL 使用。
+     *
+     * @param token JWT令牌
+     * @return 剩余毫秒数；token 非法或已过期时返回 0
+     */
+    public long getRemainingTtlMillis(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(secret.getBytes());
+            Date expiration = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getExpiration();
+            if (expiration == null) {
+                return 0;
+            }
+            return expiration.getTime() - System.currentTimeMillis();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 }
