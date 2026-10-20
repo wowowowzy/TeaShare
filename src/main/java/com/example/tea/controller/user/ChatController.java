@@ -6,6 +6,7 @@ import com.example.tea.entity.pojo.ChatModel.Prompt;
 import com.example.tea.entity.pojo.Result;
 import com.example.tea.mapper.ChatMapper;
 import com.example.tea.utils.ThreadLocalUserIdUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping(value = "/api/user/ai")
+@Slf4j
 public class ChatController {
 
     @Autowired
@@ -93,12 +95,62 @@ public class ChatController {
         }
 
         // 历史记忆 / RAG / 长期记忆 全部通过 Advisor 链完成，conversationId 关联本次会话。
+        //
+        // ⚠️ 上游大模型异常兜底（必需，勿删）：
+        //   Advisor 链内部（BaseAdvisor.adviseStream）在出现 Connection reset、超时、
+        //   限流等错误时，会统一抛 IllegalStateException("Stream processing failed")。
+        //   若不在此处拦截，异常将冒泡到 GlobalExceptionHandler，而该处理器面向普通
+        //   JSON 接口，会把 {"code":0,"msg":"未知异常"} 写进已提交的 text/event-stream，
+        //   前端只能收到一坨裸 JSON、无法区分「正常分片」与「错误」。
+        //   因此在流最外层兜底，把错误转成一条结构化的 SSE 事件（type=error），
+        //   既保留 HTTP 200 的 SSE 语义，又让前端能精确识别。
         return chatClient.prompt()
                 .messages(userMessageBuilder.build())
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .toolContext(toolContext)
                 .stream()
-                .content();
+                .content()
+                .onErrorResume(e -> {
+                    log.error("AI 流式对话失败，conversationId={}，原因：{}", conversationId, e.getMessage(), e);
+                    return Flux.just(buildStreamErrorEvent(e));
+                });
+    }
+
+    /** 单条结构化错误事件（JSON 字符串，由 Flux<String> 逐条作为 SSE data 发出） */
+    private String buildStreamErrorEvent(Throwable e) {
+        String msg = resolveErrorMessage(e);
+        return "{\"type\":\"error\",\"code\":0,\"msg\":\"" + msg + "\"}";
+    }
+
+    /**
+     * 把底层异常翻译成对用户友好、且不泄漏内部细节的提示。
+     * 前端可按需展示；具体技术原因只记在服务端日志里。
+     */
+    private String resolveErrorMessage(Throwable e) {
+        String raw = e == null ? "" : String.valueOf(e.getMessage());
+        String cause = "";
+        Throwable root = e;
+        while (root != null) {
+            if (root.getMessage() != null) {
+                cause = root.getMessage();
+            }
+            root = root.getCause();
+        }
+        String all = (raw + " " + cause).toLowerCase();
+
+        if (all.contains("connection reset") || all.contains("connection reset by peer")) {
+            return "AI 服务连接被重置，请重试";
+        }
+        if (all.contains("timeout") || all.contains("timed out")) {
+            return "AI 服务响应超时，请重试";
+        }
+        if (all.contains("429") || all.contains("rate limit")) {
+            return "AI 服务繁忙，请稍后再试";
+        }
+        if (all.contains("401") || all.contains("403") || all.contains("unauthorized")) {
+            return "AI 服务鉴权失败，请联系管理员";
+        }
+        return "AI 服务暂时不可用，请稍后重试";
     }
 
     /**

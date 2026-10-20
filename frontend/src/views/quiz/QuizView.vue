@@ -370,15 +370,16 @@ async function sendMessage() {
         });
       }
     } else {
-      // 其他错误
-      // 替换最后一条消息为错误消息
+      // 其他错误（含后端 AI 兜底事件给出的可读文案，如「AI 服务连接被重置，请重试」）
+      // 直接展示错误原因本身，不再前缀「服务器暂时无法响应」以免与后端文案冲突
+      const reason = error.message || '请稍后重试';
       if (messages.value.length > 0 && messages.value[messages.value.length - 1].type === 'system-message') {
-        messages.value[messages.value.length - 1].content = `抱歉，服务器暂时无法响应：${error.message}`;
+        messages.value[messages.value.length - 1].content = `抱歉，${reason}`;
         messages.value[messages.value.length - 1].isStreaming = false;
       } else {
         messages.value.push({
           type: 'system-message',
-          content: `抱歉，服务器暂时无法响应：${error.message}`,
+          content: `抱歉，${reason}`,
           isStreaming: false
         });
       }
@@ -386,6 +387,12 @@ async function sendMessage() {
   } finally {
     // 隐藏加载状态
     loading.value = false;
+    // 兜底：清理任何仍处于流式状态但内容为空的空气泡
+    const pending = messages.value.find(msg => msg.type === 'system-message' && msg.isStreaming && !msg.content);
+    if (pending) {
+      pending.isStreaming = false;
+      messages.value = messages.value.filter(msg => msg !== pending);
+    }
     // 滚动到底部
     await nextTick();
     scrollToBottom();

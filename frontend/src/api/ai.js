@@ -25,6 +25,33 @@ async function checkUrlAccessibility(url) {
   }
 }
 
+/**
+ * 后端全局异常处理器返回的错误体形如 {"code":0,"msg":"..."}；
+ * 流式接口的兜底事件形如 {"type":"error","code":0,"msg":"..."}。
+ * 两者都识别，返回可读 msg；不是错误体则返回 null。
+ *
+ * 背景：上游大模型异常（如 Connection reset）时，Spring 的全局异常处理器会把
+ * Result JSON 写进同一条 SSE 流。若直接当文本渲染，用户就会看到一串裸 JSON。
+ */
+function parseBackendError(text) {
+  if (!text) return null;
+  const t = String(text).trim();
+  if (!t.startsWith('{')) return null;
+  try {
+    const obj = JSON.parse(t);
+    if (!obj || typeof obj !== 'object') return null;
+    // 流式兜底事件
+    if (obj.type === 'error') return obj.msg || 'AI 服务暂时不可用，请稍后重试';
+    // 普通接口错误体（code !== 1）
+    if (typeof obj.code === 'number' && obj.code !== 1 && obj.code !== 200) {
+      return obj.msg || 'AI 服务异常';
+    }
+  } catch {
+    // 不是完整 JSON，忽略
+  }
+  return null;
+}
+
 // 智能问答接口 - 支持流式数据
 export const generateStream = async (message, sessionId, image = null, onChunk, onComplete, onError) => {
   // console.log('前端请求参数：', { message, sessionId, image: image ? (typeof image === 'string' ? 'URL' : '文件') : '无' });
@@ -82,12 +109,16 @@ export const generateStream = async (message, sessionId, image = null, onChunk, 
     const response = await fetch(url, fetchOptions);
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // 非 2xx 时后端也可能返回 Result JSON，尽量取出 msg
+      const errText = await response.text().catch(() => '');
+      throw new Error(parseBackendError(errText) || `AI 服务请求失败（HTTP ${response.status}）`);
     }
     
     // 处理流式响应
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
+    let received = '';
+    let receivedSent = false;
     
     while (true) {
       const { done, value } = await reader.read();
@@ -109,10 +140,40 @@ export const generateStream = async (message, sessionId, image = null, onChunk, 
         .filter(line => line.length > 0)
         .join('');
       
+      if (cleanedChunk.length === 0) continue;
+      
+      if (!receivedSent) {
+        // 尚未开始渲染：先累积，用来判断整段流是否为后端错误体。
+        // 阈值取小一点，既够识别 JSON 错误体，又不明显拖慢首字显示。
+        received += cleanedChunk;
+        const looksLikeJson = received.trim().startsWith('{');
+        const asError = looksLikeJson ? parseBackendError(received) : null;
+        
+        if (asError) {
+          // 是错误体：继续累积到流结束，不渲染
+          continue;
+        }
+        if (!looksLikeJson || received.length >= 120) {
+          receivedSent = true;
+          if (onChunk) onChunk(received);
+        }
+        continue;
+      }
+      
       // 实时处理，确保数据一到达就立即传递给回调
-      if (onChunk && cleanedChunk.length > 0) {
-        // 立即调用回调，不做任何延迟
+      if (onChunk) {
         onChunk(cleanedChunk);
+      }
+    }
+    
+    // 全程未渲染：要么是错误体，要么是很短的正常回复
+    if (!receivedSent) {
+      const backendMsg = parseBackendError(received);
+      if (backendMsg) {
+        throw new Error(backendMsg);
+      }
+      if (received.trim() && onChunk) {
+        onChunk(received);
       }
     }
   } catch (error) {
